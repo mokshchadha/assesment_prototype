@@ -28,7 +28,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
   const [progress, setProgress] = useState(100)
 
   useEffect(() => {
-    if (event.status !== "claimed" || !event.claimed_at || !lockTtlSeconds) return;
+    if (event.status !== "claimed" || !event.claimed_at || typeof lockTtlSeconds !== "number" || lockTtlSeconds <= 0) return;
 
     const claimedTime = new Date(event.claimed_at).getTime();
     const expireTime = claimedTime + lockTtlSeconds * 1000;
@@ -36,11 +36,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
     const updateProgress = () => {
       const now = Date.now();
       const left = expireTime - now;
-      if (left <= 0) {
-        setProgress(0);
-      } else {
-        setProgress((left / (lockTtlSeconds * 1000)) * 100);
-      }
+      setProgress(Math.max(0, Math.min(100, (left / (lockTtlSeconds * 1000)) * 100)));
     };
 
     updateProgress();
@@ -100,7 +96,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
           <div className="event-claimed-at">
             claimed {timeAgo(event.claimed_at)}
           </div>
-          {event.status === "claimed" && lockTtlSeconds && (
+          {event.status === "claimed" && typeof lockTtlSeconds === "number" && lockTtlSeconds > 0 && (
             <div className="progress-bar-bg">
               <div 
                 className="progress-bar-fill" 
