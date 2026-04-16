@@ -169,4 +169,13 @@ export async function getClaimedEventsByModerator(moderatorId: string): Promise<
   `
 }
 
+export async function getResolvedEventsByModerator(moderatorId: string): Promise<DbEvent[]> {
+  return sql<DbEvent[]>`
+    SELECT * FROM events
+    WHERE claimed_by = ${moderatorId}::uuid
+    AND status = 'resolved'
+    ORDER BY resolved_at DESC
+  `
+}
+
 export { sql }

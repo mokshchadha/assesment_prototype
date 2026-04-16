@@ -450,3 +450,116 @@ html, body, #root {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+/* ── Beautified Payload ───────────────────── */
+
+.event-payload.beautified {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: none;
+  overflow: visible;
+}
+
+.payload-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ptag {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.ptag-type {
+  background: rgba(71, 179, 255, 0.15);
+  color: var(--blue);
+  border: 1px solid rgba(71, 179, 255, 0.25);
+}
+
+.ptag-sev-high {
+  background: rgba(255, 77, 77, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(255, 77, 77, 0.25);
+}
+
+.ptag-sev-medium {
+  background: rgba(255, 154, 60, 0.15);
+  color: var(--orange);
+  border: 1px solid rgba(255, 154, 60, 0.25);
+}
+
+.ptag-sev-low {
+  background: rgba(71, 217, 138, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(71, 217, 138, 0.25);
+}
+
+.ptag-platform {
+  background: rgba(232, 255, 71, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(232, 255, 71, 0.25);
+}
+
+.ptag-sev-undefined {
+  background: var(--muted);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.payload-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: 6px;
+  column-gap: 12px;
+  align-items: baseline;
+}
+
+.payload-row {
+  display: contents;
+}
+
+.payload-key {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: none;
+}
+
+.payload-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* Recursive styling */
+
+.payload-nested-object {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.payload-nested-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: 2px;
+  column-gap: 8px;
+  align-items: baseline;
+}
+
+.val-str { color: var(--green); }
+.val-num { color: var(--blue); }
+.val-bool { color: var(--orange); }
+.val-null { color: var(--text-dim); font-style: italic; }
+

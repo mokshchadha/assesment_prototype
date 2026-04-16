@@ -1,5 +1,5 @@
 import { t } from "elysia"
-import { getOpenEventsByRegion, getClaimedEventsByModerator } from "../db/postgres"
+import { getOpenEventsByRegion, getClaimedEventsByModerator, getResolvedEventsByModerator } from "../db/postgres"
 import { claimEvent, acknowledgeEvent } from "../services/claim"
 import { verifyJwt } from "../utils/jwt"
 import users from "../db/users.json"
@@ -38,12 +38,13 @@ export const wsHandler = {
     // now ws.publish("Asia", ...) reaches every moderator in Asia
     ws.subscribe(region)
 
-    const [openEvents, myClaimedEvents] = await Promise.all([
+    const [openEvents, myClaimedEvents, myResolvedEvents] = await Promise.all([
       getOpenEventsByRegion(region),
       getClaimedEventsByModerator(user.id),
+      getResolvedEventsByModerator(user.id),
     ])
 
-    ws.send(JSON.stringify({ type: "available_events", events: [...openEvents, ...myClaimedEvents] }))
+    ws.send(JSON.stringify({ type: "available_events", events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents] }))
   },
 
   async message(ws: any, rawMessage: unknown) {

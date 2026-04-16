@@ -23,6 +23,19 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function EventCard({ event, onClaim, onAck }: EventCardProps) {
+  let payloadObj: Record<string, any> = {};
+  if (typeof event.payload === 'string') {
+    try {
+      payloadObj = JSON.parse(event.payload);
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+  } else if (typeof event.payload === 'object' && event.payload !== null) {
+    payloadObj = event.payload;
+  }
+
+  const { type, severity, reported_at, user_id } = payloadObj;
+
   return (
     <div className={`event-card status-${event.status}`}>
       <div className="event-card-top">
@@ -35,8 +48,26 @@ export function EventCard({ event, onClaim, onAck }: EventCardProps) {
 
       <div className="event-id">{event.id}</div>
 
-      <div className="event-payload">
-        <pre>{JSON.stringify(event.payload, null, 2)}</pre>
+      <div className="event-payload beautified">
+        <div className="payload-tags">
+          {type && <span className="ptag ptag-type">{String(type).replace(/_/g, ' ')}</span>}
+          {severity && <span className={`ptag ptag-sev-${String(severity).toLowerCase()}`}>{String(severity)}</span>}
+        </div>
+
+        <div className="payload-grid">
+          {reported_at && (
+            <div className="payload-row">
+              <span className="payload-key">reported at</span>
+              <span className="payload-val">{String(reported_at)}</span>
+            </div>
+          )}
+          {user_id && (
+            <div className="payload-row">
+              <span className="payload-key">user id</span>
+              <span className="payload-val">{String(user_id)}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {event.claimed_at && (
