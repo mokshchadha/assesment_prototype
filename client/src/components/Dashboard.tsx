@@ -15,6 +15,7 @@ interface DashboardProps {
 export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
   const [tab, setTab] = useState<Tab>("open")
   const [events, setEvents] = useState<Record<string, ModerationEvent>>({})
+  const [lockTtl, setLockTtl] = useState<number>(0)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -32,7 +33,8 @@ export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
     name,
     region,
     token,
-    onAvailableEvents: (incoming: ModerationEvent[]) => {
+    onAvailableEvents: (incoming: ModerationEvent[], lockTtlSeconds: number) => {
+      setLockTtl(lockTtlSeconds)
       setEvents(prev => {
         const next = { ...prev }
         for (const e of incoming) next[e.id] = e
@@ -116,6 +118,7 @@ export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
               <EventCard
                 key={event.id}
                 event={event}
+                lockTtlSeconds={lockTtl}
                 onClaim={event.status === "open" ? () => claim(event.id) : undefined}
                 onAck={event.status === "claimed" ? () => acknowledge(event.id) : undefined}
               />

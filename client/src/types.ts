@@ -33,7 +33,7 @@ export const TYPES = {
 } as const
 
 export type ServerMessage =
-  | { type: typeof TYPES.availableEvents; events: ModerationEvent[] }
+  | { type: typeof TYPES.availableEvents; events: ModerationEvent[]; lockTtlSeconds: number }
   | { type: typeof TYPES.claimSuccess; event: ModerationEvent }
   | { type: typeof TYPES.claimFailed; eventId: string; reason: string }
   | { type: typeof TYPES.claimExpired; eventId: string }

@@ -563,3 +563,30 @@ html, body, #root {
 .val-bool { color: var(--orange); }
 .val-null { color: var(--text-dim); font-style: italic; }
 
+/* ── Progress Bar ────────────────────────── */
+
+.event-claimed-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-claimed-at {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--orange);
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--orange);
+  transition: width 0.1s linear;
+}

@@ -1,5 +1,6 @@
 import { t } from "elysia"
 import { getOpenEventsByRegion, getClaimedEventsByModerator, getResolvedEventsByModerator } from "../db/postgres"
+import { LOCK_TTL_SECONDS } from "../db/redis"
 import { claimEvent, acknowledgeEvent } from "../services/claim"
 import { verifyJwt } from "../utils/jwt"
 import users from "../db/users.json"
@@ -44,7 +45,7 @@ export const wsHandler = {
       getResolvedEventsByModerator(user.id),
     ])
 
-    ws.send(JSON.stringify({ type: "available_events", events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents] }))
+    ws.send(JSON.stringify({ type: "available_events", events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents], lockTtlSeconds: LOCK_TTL_SECONDS }))
   },
 
   async message(ws: any, rawMessage: unknown) {

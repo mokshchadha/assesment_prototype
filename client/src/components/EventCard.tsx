@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react"
 import type { ModerationEvent } from "../types"
 
 interface EventCardProps {
   event: ModerationEvent
   onClaim?: () => void
   onAck?: () => void
+  lockTtlSeconds?: number
 }
 
 function timeAgo(iso: string): string {
@@ -22,7 +24,30 @@ const STATUS_LABEL: Record<string, string> = {
   expired: "Expired",
 }
 
-export function EventCard({ event, onClaim, onAck }: EventCardProps) {
+export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardProps) {
+  const [progress, setProgress] = useState(100)
+
+  useEffect(() => {
+    if (event.status !== "claimed" || !event.claimed_at || !lockTtlSeconds) return;
+
+    const claimedTime = new Date(event.claimed_at).getTime();
+    const expireTime = claimedTime + lockTtlSeconds * 1000;
+
+    const updateProgress = () => {
+      const now = Date.now();
+      const left = expireTime - now;
+      if (left <= 0) {
+        setProgress(0);
+      } else {
+        setProgress((left / (lockTtlSeconds * 1000)) * 100);
+      }
+    };
+
+    updateProgress();
+    const interval = setInterval(updateProgress, 100);
+    return () => clearInterval(interval);
+  }, [event.status, event.claimed_at, lockTtlSeconds]);
+
   let payloadObj: Record<string, any> = {};
   if (typeof event.payload === 'string') {
     try {
@@ -71,8 +96,18 @@ export function EventCard({ event, onClaim, onAck }: EventCardProps) {
       </div>
 
       {event.claimed_at && (
-        <div className="event-claimed-at">
-          claimed {timeAgo(event.claimed_at)}
+        <div className="event-claimed-container">
+          <div className="event-claimed-at">
+            claimed {timeAgo(event.claimed_at)}
+          </div>
+          {event.status === "claimed" && lockTtlSeconds && (
+            <div className="progress-bar-bg">
+              <div 
+                className="progress-bar-fill" 
+                style={{ width: `${progress}%` }} 
+              />
+            </div>
+          )}
         </div>
       )}
 

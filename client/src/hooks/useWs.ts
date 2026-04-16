@@ -7,7 +7,7 @@ interface UseWsOptions {
   name: string
   region: string
   token: string
-  onAvailableEvents: (events: ModerationEvent[]) => void
+  onAvailableEvents: (events: ModerationEvent[], lockTtlSeconds: number) => void
   onClaimSuccess: (event: ModerationEvent) => void
   onClaimFailed: (eventId: string, reason: string) => void
   onClaimExpired: (eventId: string) => void
@@ -39,7 +39,7 @@ export function useWs(opts: UseWsOptions | null) {
       }
 
       switch (msg.type) {
-        case "available_events": opts.onAvailableEvents(msg.events); break
+        case "available_events": opts.onAvailableEvents(msg.events, msg.lockTtlSeconds); break
         case "claim_success":    opts.onClaimSuccess(msg.event); break
         case "claim_failed":     opts.onClaimFailed(msg.eventId, msg.reason); break
         case "claim_expired":    opts.onClaimExpired(msg.eventId); break
