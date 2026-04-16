@@ -1,37 +1,32 @@
-import Elysia, { t } from "elysia"
-import { insertEvent, getOpenEventsByRegion } from "../db/postgres"
+import { Elysia, t } from "elysia"
+import { insertEvent } from "../db/postgres"
+import { broadcastToRegion } from "../ws/sessions"
+import type { Region } from "../types"
 
-const regionEnum = t.Union([
-  t.Literal("Asia"),
-  t.Literal("Europe"),
-  t.Literal("US"),
-])
-
-export const eventRoutes = new Elysia()
+export const eventRoutes = new Elysia({ prefix: "/events" })
   .post(
-    "/events",
+    "/",
     async ({ body, set }) => {
-      const event = await insertEvent(body.region, body.payload)
+      const { region, payload } = body as { region: Region; payload: Record<string, unknown> }
+
+      const event = await insertEvent(region, payload)
+      if (!event) {
+        set.status = 500
+        return { error: "failed to create event" }
+      }
+
+      broadcastToRegion(region, {
+        type: "available_events",
+        events: [event],
+      })
+
       set.status = 201
       return event
     },
     {
       body: t.Object({
-        region: regionEnum,
+        region: t.Union([t.Literal("Asia"), t.Literal("Europe"), t.Literal("US")]),
         payload: t.Record(t.String(), t.Unknown()),
-      }),
-    }
-  )
-  .get(
-    "/events/:region",
-    async ({ params, set }) => {
-      const region = params.region as "Asia" | "Europe" | "US"
-      const events = await getOpenEventsByRegion(region)
-      return events
-    },
-    {
-      params: t.Object({
-        region: regionEnum,
       }),
     }
   )

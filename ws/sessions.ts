@@ -18,4 +18,13 @@ export function hasSession(moderatorId: string): boolean {
   return sessions.has(moderatorId)
 }
 
+export function broadcastToRegion(region: string, message: unknown): void {
+  const payload = JSON.stringify(message)
+  for (const session of sessions.values()) {
+    if (session.region === region) {
+      session.ws.send(payload)
+    }
+  }
+}
+
 export { sessions }

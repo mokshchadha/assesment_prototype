@@ -9,10 +9,7 @@ function lockKey(eventId: string): string {
 }
 
 export async function acquireLock(eventId: string, moderatorId: string): Promise<boolean> {
-  const result = await redis.set(lockKey(eventId), moderatorId, {
-    nx: true,
-    ex: LOCK_TTL_SECONDS,
-  })
+  const result = await redis.set(lockKey(eventId), moderatorId, "EX", String(LOCK_TTL_SECONDS), "NX")
   return result === "OK"
 }
 

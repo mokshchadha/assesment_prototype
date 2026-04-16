@@ -47,6 +47,24 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  seeder:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: bun seed-events.ts --events=${SEED_EVENTS:-5}
+    environment:
+      API_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
   client:
     image: node:24-alpine
