@@ -4,8 +4,9 @@ import type { ModerationEvent, ServerMessage } from "../types"
 const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:3000"
 
 interface UseWsOptions {
-  moderatorId: string
+  name: string
   region: string
+  token: string
   onAvailableEvents: (events: ModerationEvent[]) => void
   onClaimSuccess: (event: ModerationEvent) => void
   onClaimFailed: (eventId: string, reason: string) => void
@@ -22,7 +23,7 @@ export function useWs(opts: UseWsOptions | null) {
   useEffect(() => {
     if (!opts) return
 
-    const url = `${WS_URL}/ws?moderatorId=${opts.moderatorId}&region=${opts.region}`
+    const url = `${WS_URL}/ws?name=${opts.name}&region=${opts.region}&token=${opts.token}`
     const socket = new WebSocket(url)
     ws.current = socket
 
@@ -52,7 +53,7 @@ export function useWs(opts: UseWsOptions | null) {
       socket.close()
       ws.current = null
     }
-  }, [opts?.moderatorId, opts?.region])
+  }, [opts?.name, opts?.region, opts?.token])
 
   const claim = useCallback((eventId: string) => {
     ws.current?.send(JSON.stringify({ type: "claim", eventId }))

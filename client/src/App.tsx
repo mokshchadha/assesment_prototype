@@ -1,16 +1,11 @@
-import { useState } from "react"
-import type { Moderator } from "./types"
+import { useAuth } from "./hooks/useAuth"
 import { Login } from "./components/Login"
 import { Dashboard } from "./components/Dashboard"
 
 export default function App() {
-  const [moderator, setModerator] = useState<Moderator | null>(null)
+  const { auth, login, logout } = useAuth()
 
-  function handleLogout() {
-    setModerator(null)
-  }
-
-  return moderator
-    ? <Dashboard moderator={moderator} onLogout={handleLogout} />
-    : <Login onLogin={setModerator} />
+  return auth
+    ? <Dashboard name={auth.name} region={auth.region} token={auth.token} onLogout={logout} />
+    : <Login onLogin={login} />
 }

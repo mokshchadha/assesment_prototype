@@ -1,16 +1,18 @@
 import { useState, useRef } from "react"
-import type { ModerationEvent, Moderator } from "../types"
+import type { ModerationEvent, Region } from "../types"
 import { useWs } from "../hooks/useWs"
 import { EventCard } from "./EventCard"
 
 type Tab = "open" | "claimed" | "resolved"
 
 interface DashboardProps {
-  moderator: Moderator
+  name: string
+  region: Region
+  token: string
   onLogout: () => void
 }
 
-export function Dashboard({ moderator, onLogout }: DashboardProps) {
+export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
   const [tab, setTab] = useState<Tab>("open")
   const [events, setEvents] = useState<Record<string, ModerationEvent>>({})
   const [toast, setToast] = useState<string | null>(null)
@@ -27,8 +29,9 @@ export function Dashboard({ moderator, onLogout }: DashboardProps) {
   }
 
   const wsOpts = {
-    moderatorId: moderator.id,
-    region: moderator.region_id,
+    name,
+    region,
+    token,
     onAvailableEvents: (incoming: ModerationEvent[]) => {
       setEvents(prev => {
         const next = { ...prev }
@@ -80,8 +83,8 @@ export function Dashboard({ moderator, onLogout }: DashboardProps) {
         <div className="dash-header-left">
           <div className="dash-badge">MOD</div>
           <div>
-            <div className="dash-name">{moderator.name}</div>
-            <div className="dash-region">{moderator.region_id}</div>
+            <div className="dash-name">{name}</div>
+            <div className="dash-region">{region}</div>
           </div>
         </div>
         <div className="dash-header-right">

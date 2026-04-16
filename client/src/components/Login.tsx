@@ -1,41 +1,30 @@
 import { useState } from "react"
-import type { Moderator, Region } from "../types"
+import type { Region } from "../types"
+import type { useAuth } from "../hooks/useAuth"
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
 const REGIONS: Region[] = ["Asia", "Europe", "US"]
 
 interface LoginProps {
-  onLogin: (moderator: Moderator) => void
+  onLogin: ReturnType<typeof useAuth>["login"]
 }
 
 export function Login({ onLogin }: LoginProps) {
   const [name, setName] = useState("")
+  const [password, setPassword] = useState("")
   const [region, setRegion] = useState<Region>("Asia")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || !password) return
     setLoading(true)
     setError("")
 
-    try {
-      const res = await fetch(`${API}/moderators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), region }),
-      })
+    const result = await onLogin(name.trim(), password, region)
+    if (result.error) setError(result.error)
 
-      if (!res.ok) throw new Error("failed to register")
-
-      const moderator: Moderator = await res.json()
-      onLogin(moderator)
-    } catch (err: any) {
-      setError(err.message ?? "something went wrong")
-    } finally {
-      setLoading(false)
-    }
+    setLoading(false)
   }
 
   return (
@@ -44,17 +33,29 @@ export function Login({ onLogin }: LoginProps) {
         <div className="login-header">
           <div className="login-badge">MOD</div>
           <h1>Moderation Console</h1>
-          <p>Register to start reviewing events in your region</p>
+          <p>Sign in with your moderator credentials</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="field">
-            <label>Display name</label>
+            <label>Username</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. alex.chen"
               autoFocus
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
             />
           </div>
 
@@ -76,8 +77,8 @@ export function Login({ onLogin }: LoginProps) {
 
           {error && <div className="form-error">{error}</div>}
 
-          <button type="submit" className="submit-btn" disabled={loading || !name.trim()}>
-            {loading ? "Connecting..." : "Enter Console"}
+          <button type="submit" className="submit-btn" disabled={loading || !name.trim() || !password}>
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
       </div>
