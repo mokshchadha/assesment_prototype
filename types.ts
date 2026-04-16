@@ -43,7 +43,6 @@ export interface ModeratorSession {
   moderatorId: string
   region: Region
   claimedEvents: Set<string>
-  timers: Map<string, ReturnType<typeof setTimeout>>
   ws: { send: (data: string) => void; close: () => void }
 }
 

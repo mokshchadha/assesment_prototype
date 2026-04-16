@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia"
 import { insertEvent } from "../db/postgres"
-import { broadcastToRegion } from "../ws/sessions"
+import { publish } from "../ws/server"
+import { TYPES } from "../types"
 import type { Region } from "../types"
 
 export const eventRoutes = new Elysia({ prefix: "/events" })
@@ -15,10 +16,7 @@ export const eventRoutes = new Elysia({ prefix: "/events" })
         return { error: "failed to create event" }
       }
 
-      broadcastToRegion(region, {
-        type: "available_events",
-        events: [event],
-      })
+      publish(region, { type: TYPES.availableEvents, events: [event] })
 
       set.status = 201
       return event

@@ -1,11 +1,18 @@
 import { RedisClient } from "bun"
 
 const redis = new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379")
+const redisSubscriber = new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379")
 
 const LOCK_TTL_SECONDS = process.env.LOCK_TTL_SECONDS ? parseInt(process.env.LOCK_TTL_SECONDS, 10) : 900
 
 function lockKey(eventId: string): string {
   return `lock:event:${eventId}`
+}
+
+export function eventIdFromLockKey(key: string): string | null {
+  const prefix = "lock:event:"
+  if (!key.startsWith(prefix)) return null
+  return key.slice(prefix.length)
 }
 
 export async function acquireLock(eventId: string, moderatorId: string): Promise<boolean> {
@@ -26,10 +33,7 @@ export async function lockExists(eventId: string): Promise<boolean> {
   return val === 1
 }
 
-export async function releaseLockIfOwner(
-  eventId: string,
-  moderatorId: string
-): Promise<boolean> {
+export async function releaseLockIfOwner(eventId: string, moderatorId: string): Promise<boolean> {
   const owner = await getLockOwner(eventId)
   if (owner !== moderatorId) return false
   await releaseLock(eventId)
@@ -42,4 +46,8 @@ export async function releaseAllLocksForModerator(eventIds: string[]): Promise<v
   await redis.del(...keys)
 }
 
-export { redis, LOCK_TTL_SECONDS }
+export async function enableKeyspaceNotifications(): Promise<void> {
+  await redis.send("CONFIG", ["SET", "notify-keyspace-events", "Ex"])
+}
+
+export { redis, redisSubscriber, LOCK_TTL_SECONDS }

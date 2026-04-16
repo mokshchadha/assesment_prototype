@@ -80,6 +80,15 @@ export async function getOpenEventsByRegion(region: Region): Promise<DbEvent[]> 
   `
 }
 
+export async function getRecentEventsByRegion(region: Region): Promise<DbEvent[]> {
+  return sql<DbEvent[]>`
+    SELECT * FROM events
+    WHERE region_id = ${region}
+    AND status IN ('open', 'claimed', 'resolved')
+    ORDER BY created_at ASC
+  `
+}
+
 export async function getEventById(id: string): Promise<DbEvent | null> {
   const [row] = await sql<DbEvent[]>`
     SELECT * FROM events WHERE id = ${id}
@@ -91,6 +100,7 @@ export async function markEventClaimed(
   eventId: string,
   moderatorId: string
 ): Promise<DbEvent | null> {
+  console.log("marking claimed ============", eventId, moderatorId)
   const [row] = await sql<DbEvent[]>`
     UPDATE events
     SET status = 'claimed',
@@ -104,6 +114,7 @@ export async function markEventClaimed(
 }
 
 export async function markEventResolved(eventId: string): Promise<void> {
+  console.log("mark as resolved")
   await sql`
     UPDATE events
     SET status = 'resolved',
@@ -146,6 +157,15 @@ export async function reopenClaimedEventsByModerator(moderatorId: string): Promi
 export async function getAllClaimedEvents(): Promise<DbEvent[]> {
   return sql<DbEvent[]>`
     SELECT * FROM events WHERE status = 'claimed'
+  `
+}
+
+export async function getClaimedEventsByModerator(moderatorId: string): Promise<DbEvent[]> {
+  return sql<DbEvent[]>`
+    SELECT * FROM events
+    WHERE claimed_by = ${moderatorId}::uuid
+    AND status = 'claimed'
+    ORDER BY claimed_at ASC
   `
 }
 

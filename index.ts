@@ -5,9 +5,12 @@ import { authRoutes } from "./routes/auth"
 import { eventRoutes } from "./routes/events"
 import { wsHandler } from "./ws/handler"
 import { rehydrate } from "./services/rehydrate"
+import { enableKeyspaceNotifications } from "./db/redis"
+import { startLockExpiryListener } from "./services/lockExpiry"
 import { authMiddleware } from "./middleware/auth"
+import { setServer } from "./ws/server"
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(cors())
   .use(authMiddleware)
   .use(authRoutes)
@@ -27,9 +30,12 @@ const app = new Elysia()
     set.status = 500
     return { error: "internal server error" }
   })
-  .onStart(async () => {
+  .onStart(async ({ server }) => {
+    setServer(server!)
     await runMigrations()
     await rehydrate()
+    await enableKeyspaceNotifications()
+    await startLockExpiryListener()
   })
   .listen(process.env.PORT ?? 3000)
 
