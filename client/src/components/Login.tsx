@@ -10,18 +10,17 @@ interface LoginProps {
 
 export function Login({ onLogin }: LoginProps) {
   const [name, setName] = useState("")
-  const [password, setPassword] = useState("")
   const [region, setRegion] = useState<Region>("Asia")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !password) return
+    if (!name.trim()) return
     setLoading(true)
     setError("")
 
-    const result = await onLogin(name.trim(), password, region)
+    const result = await onLogin(name.trim(), region)
     if (result.error) setError(result.error)
 
     setLoading(false)
@@ -33,29 +32,18 @@ export function Login({ onLogin }: LoginProps) {
         <div className="login-header">
           <div className="login-badge">MOD</div>
           <h1>Moderation Console</h1>
-          <p>Sign in with your moderator credentials</p>
+          <p>Sign in with your moderator ID and region</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="field">
-            <label>Username</label>
+            <label>Moderator ID</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="e.g. alex.chen"
+              placeholder="e.g. moksh"
               autoFocus
               autoComplete="username"
-            />
-          </div>
-
-          <div className="field">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
             />
           </div>
 
@@ -77,7 +65,7 @@ export function Login({ onLogin }: LoginProps) {
 
           {error && <div className="form-error">{error}</div>}
 
-          <button type="submit" className="submit-btn" disabled={loading || !name.trim() || !password}>
+          <button type="submit" className="submit-btn" disabled={loading || !name.trim()}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>

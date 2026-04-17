@@ -2,7 +2,7 @@ import { SQL } from "bun"
 import type { DbEvent, DbModerator, EventStatus, Region } from "../types"
 import users from "../db/users.json"
 
-type UsersMap = Record<string, { id: string; password: string; region: Region }>
+type UsersMap = Record<string, { id: string; region: Region }>
 const USERS = users as UsersMap
 
 const sql = new SQL({
@@ -23,7 +23,7 @@ export async function runMigrations(): Promise<void> {
 
   await sql`
     CREATE TABLE IF NOT EXISTS moderators (
-      id UUID PRIMARY KEY,
+      id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       region_id TEXT NOT NULL REFERENCES regions(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -37,7 +37,7 @@ export async function runMigrations(): Promise<void> {
       payload JSONB NOT NULL DEFAULT '{}',
       status TEXT NOT NULL DEFAULT 'open'
         CHECK (status IN ('open', 'claimed', 'resolved', 'expired')),
-      claimed_by UUID REFERENCES moderators(id),
+      claimed_by TEXT REFERENCES moderators(id),
       claimed_at TIMESTAMPTZ,
       resolved_at TIMESTAMPTZ,
       expired_at TIMESTAMPTZ,
@@ -53,7 +53,7 @@ export async function runMigrations(): Promise<void> {
   for (const [name, user] of Object.entries(USERS)) {
     await sql`
       INSERT INTO moderators (id, name, region_id)
-      VALUES (${user.id}::uuid, ${name}, ${user.region})
+      VALUES (${user.id}, ${name}, ${user.region})
       ON CONFLICT (id) DO NOTHING
     `
   }
@@ -104,7 +104,7 @@ export async function markEventClaimed(
   const [row] = await sql<DbEvent[]>`
     UPDATE events
     SET status = 'claimed',
-        claimed_by = ${moderatorId}::uuid,
+        claimed_by = ${moderatorId},
         claimed_at = now()
     WHERE id = ${eventId}::uuid
     AND status = 'open'
@@ -148,7 +148,7 @@ export async function reopenClaimedEventsByModerator(moderatorId: string): Promi
     SET status = 'open',
         claimed_by = NULL,
         claimed_at = NULL
-    WHERE claimed_by = ${moderatorId}::uuid
+    WHERE claimed_by = ${moderatorId}
     AND status = 'claimed'
     RETURNING *
   `
@@ -163,7 +163,7 @@ export async function getAllClaimedEvents(): Promise<DbEvent[]> {
 export async function getClaimedEventsByModerator(moderatorId: string): Promise<DbEvent[]> {
   return sql<DbEvent[]>`
     SELECT * FROM events
-    WHERE claimed_by = ${moderatorId}::uuid
+    WHERE claimed_by = ${moderatorId}
     AND status = 'claimed'
     ORDER BY claimed_at ASC
   `
@@ -172,7 +172,7 @@ export async function getClaimedEventsByModerator(moderatorId: string): Promise<
 export async function getResolvedEventsByModerator(moderatorId: string): Promise<DbEvent[]> {
   return sql<DbEvent[]>`
     SELECT * FROM events
-    WHERE claimed_by = ${moderatorId}::uuid
+    WHERE claimed_by = ${moderatorId}
     AND status = 'resolved'
     ORDER BY resolved_at DESC
   `

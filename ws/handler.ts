@@ -7,7 +7,7 @@ import users from "../db/users.json"
 import type { ClientMessage, Region } from "../types"
 
 
-type UsersMap = Record<string, { id: string; password: string; region: Region }>
+type UsersMap = Record<string, { id: string; region: Region }>
 const USERS = users as UsersMap
 
 export const wsQuerySchema = t.Object({

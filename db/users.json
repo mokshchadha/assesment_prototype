@@ -1,22 +1,18 @@
 {
   "moksh": {
-    "id": "a1b2c3d4-0001-0001-0001-000000000001",
-    "password": "hunter2",
+    "id": "moksh",
     "region": "Asia"
   },
   "maria": {
-    "id": "a1b2c3d4-0002-0002-0002-000000000002",
-    "password": "securepass",
+    "id": "maria",
     "region": "Europe"
   },
   "john": {
-    "id": "a1b2c3d4-0003-0003-0003-000000000003",
-    "password": "password123",
+    "id": "john",
     "region": "US"
   },
-  "alex.chen": {
-    "id": "a1b2c3d4-0004-0004-0004-000000000004",
-    "password": "hunter2",
+  "alex": {
+    "id": "alex",
     "region": "Asia"
   }
 }
