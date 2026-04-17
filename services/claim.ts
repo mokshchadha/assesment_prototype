@@ -8,7 +8,6 @@ export async function claimEvent(
   moderatorRegion: Region
 ): Promise<{ success: true; event: DbEvent } | { success: false; reason: string }> {
   const event = await getEventById(eventId)
-  console.log("moderatorId claiming ", moderatorId)
   if (!event) return { success: false, reason: "event not found" }
   if (event.status !== "open") return { success: false, reason: "event is not open" }
   if (event.region_id !== moderatorRegion) return { success: false, reason: "region mismatch" }
