@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "bun:test"
+import { describe, it, expect, afterEach, afterAll } from "bun:test"
 import { SQL } from "bun"
 import {
   insertEvent,
@@ -13,6 +13,8 @@ import {
   getAllClaimedEvents,
   getClaimedEventsByModerator,
   getResolvedEventsByModerator,
+  getModeratorByName,
+  getModeratorById,
 } from "../db/postgres"
 import type { Region } from "../types"
 
@@ -20,9 +22,9 @@ const testSql = new SQL({
   url: process.env.DATABASE_URL ?? "postgres://localhost:5432/moderation",
 })
 
-const MOD_MOKSH = "a1b2c3d4-0001-0001-0001-000000000001"
-const MOD_MARIA = "a1b2c3d4-0002-0002-0002-000000000002"
-const MOD_JOHN  = "a1b2c3d4-0003-0003-0003-000000000003"
+const MOD_MOKSH = "moksh"
+const MOD_MARIA = "maria"
+const MOD_JOHN  = "john"
 
 const ASIA: Region    = "Asia"
 const EUROPE: Region  = "Europe"
@@ -44,6 +46,58 @@ async function deleteTestEvents() {
   }
   createdEventIds.length = 0
 }
+
+describe("getModeratorByName", () => {
+  it("returns the moderator when the name exists", async () => {
+    const mod = await getModeratorByName("moksh")
+    expect(mod).not.toBeNull()
+    expect(mod!.id).toBe("moksh")
+    expect(mod!.name).toBe("moksh")
+    expect(mod!.region_id).toBe("Asia")
+    expect(mod!.created_at).toBeInstanceOf(Date)
+  })
+
+  it("returns null for a non-existent name", async () => {
+    const mod = await getModeratorByName("__no_such_mod__")
+    expect(mod).toBeNull()
+  })
+
+  it("is case-sensitive (no match for wrong case)", async () => {
+    const mod = await getModeratorByName("Moksh")
+    expect(mod).toBeNull()
+  })
+})
+
+describe("getModeratorById", () => {
+  it("returns the moderator when the id exists", async () => {
+    const mod = await getModeratorById("maria")
+    expect(mod).not.toBeNull()
+    expect(mod!.id).toBe("maria")
+    expect(mod!.name).toBe("maria")
+    expect(mod!.region_id).toBe("Europe")
+    expect(mod!.created_at).toBeInstanceOf(Date)
+  })
+
+  it("returns null for a non-existent id", async () => {
+    const mod = await getModeratorById("__ghost__")
+    expect(mod).toBeNull()
+  })
+
+  it("returns correct data for every seeded moderator", async () => {
+    const seeded = [
+      { id: "moksh", name: "moksh", region_id: "Asia" },
+      { id: "maria", name: "maria", region_id: "Europe" },
+      { id: "john",  name: "john",  region_id: "US" },
+      { id: "alex",  name: "alex",  region_id: "Asia" },
+    ]
+    for (const s of seeded) {
+      const mod = await getModeratorById(s.id)
+      expect(mod).not.toBeNull()
+      expect(mod!.id).toBe(s.id)
+      expect(mod!.name).toBe(s.name)
+    }
+  })
+})
 
 describe("insertEvent", () => {
   afterEach(deleteTestEvents)

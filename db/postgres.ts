@@ -1,9 +1,5 @@
 import { SQL } from "bun"
-import type { DbEvent, DbModerator, EventStatus, Region } from "../types"
-import users from "../db/users.json"
-
-type UsersMap = Record<string, { id: string; region: Region }>
-const USERS = users as UsersMap
+import type { DbEvent, DbModerator, Region } from "../types"
 
 const sql = new SQL({
   url: process.env.DATABASE_URL ?? "postgres://localhost:5432/moderation",
@@ -50,13 +46,34 @@ export async function runMigrations(): Promise<void> {
     ON events (region_id, status)
   `
 
-  for (const [name, user] of Object.entries(USERS)) {
+  const seedModerators = [
+    { id: "moksh", name: "moksh", region: "Asia" },
+    { id: "maria", name: "maria", region: "Europe" },
+    { id: "john", name: "john", region: "US" },
+    { id: "alex", name: "alex", region: "Asia" },
+  ]
+
+  for (const m of seedModerators) {
     await sql`
       INSERT INTO moderators (id, name, region_id)
-      VALUES (${user.id}, ${name}, ${user.region})
+      VALUES (${m.id}, ${m.name}, ${m.region})
       ON CONFLICT (id) DO NOTHING
     `
   }
+}
+
+export async function getModeratorByName(name: string): Promise<DbModerator | null> {
+  const [row] = await sql<DbModerator[]>`
+    SELECT * FROM moderators WHERE name = ${name}
+  `
+  return row ?? null
+}
+
+export async function getModeratorById(id: string): Promise<DbModerator | null> {
+  const [row] = await sql<DbModerator[]>`
+    SELECT * FROM moderators WHERE id = ${id}
+  `
+  return row ?? null
 }
 
 export async function insertEvent(
@@ -100,7 +117,6 @@ export async function markEventClaimed(
   eventId: string,
   moderatorId: string
 ): Promise<DbEvent | null> {
-  console.log("marking claimed ============", eventId, moderatorId)
   const [row] = await sql<DbEvent[]>`
     UPDATE events
     SET status = 'claimed',
@@ -114,7 +130,6 @@ export async function markEventClaimed(
 }
 
 export async function markEventResolved(eventId: string): Promise<void> {
-  console.log("mark as resolved")
   await sql`
     UPDATE events
     SET status = 'resolved',

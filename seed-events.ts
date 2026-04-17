@@ -1,4 +1,3 @@
-import users from "./db/users.json"
 
 const API = process.env.API_URL ?? "http://localhost:3000"
 const REGIONS = ["Asia", "Europe", "US"] as const
@@ -42,11 +41,10 @@ function randomPayload(region: (typeof REGIONS)[number]) {
 }
 
 async function getToken(): Promise<string> {
-  const [name, user] = Object.entries(users)[0]
   const res = await fetch(`${API}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, password: user.password, region: user.region }),
+    body: JSON.stringify({ name: "moksh", region: "Asia" }),
   })
 
   if (!res.ok) {

@@ -1,14 +1,9 @@
 import { t } from "elysia"
-import { getOpenEventsByRegion, getClaimedEventsByModerator, getResolvedEventsByModerator } from "../db/postgres"
+import { getOpenEventsByRegion, getClaimedEventsByModerator, getResolvedEventsByModerator, getModeratorByName } from "../db/postgres"
 import { LOCK_TTL_SECONDS } from "../db/redis"
 import { claimEvent, acknowledgeEvent } from "../services/claim"
 import { verifyJwt } from "../utils/jwt"
-import users from "../db/users.json"
 import type { ClientMessage, Region } from "../types"
-
-
-type UsersMap = Record<string, { id: string; region: Region }>
-const USERS = users as UsersMap
 
 export const wsQuerySchema = t.Object({
   name: t.String(),
@@ -43,8 +38,8 @@ async function validateConnection(
     return false
   }
 
-  const user = USERS[name]
-  if (!user) {
+  const moderator = await getModeratorByName(name)
+  if (!moderator) {
     sendError(ws, "user not found")
     ws.close()
     return false
@@ -103,15 +98,22 @@ export const wsHandler = {
     const isValid = await validateConnection(ws, name, region, token)
     if (!isValid) return
 
+    const moderator = await getModeratorByName(name)
+    if (!moderator) {
+      sendError(ws, "user not found")
+      ws.close()
+      return
+    }
+
     ws.subscribe(region)
-    await sendInitialEvents(ws, USERS[name]?.id ??'', region)
+    await sendInitialEvents(ws, moderator.id, region)
   },
 
   async message(ws: any, rawMessage: unknown) {
     const { name, region } = ws.data.query as { name: string; region: Region; token: string }
 
-    const user = USERS[name]
-    if (!user) {
+    const moderator = await getModeratorByName(name)
+    if (!moderator) {
       sendError(ws, "user not found")
       return
     }
@@ -122,8 +124,8 @@ export const wsHandler = {
       return
     }
 
-    if (msg.type === "claim") return handleClaim(ws, msg as any, user.id, region)
-    if (msg.type === "acknowledge") return handleAcknowledge(ws, msg as any, user.id, region)
+    if (msg.type === "claim") return handleClaim(ws, msg as any, moderator.id, region)
+    if (msg.type === "acknowledge") return handleAcknowledge(ws, msg as any, moderator.id, region)
 
     sendError(ws, "unknown message type")
   },

@@ -1,23 +1,20 @@
 import Elysia, { t } from "elysia"
-import users from "../db/users.json"
+import { getModeratorByName } from "../db/postgres"
 import { signJwt } from "../utils/jwt"
 import type { Region } from "../types"
-
-type UsersMap = Record<string, { id: string; region: Region }>
-const USERS = users as UsersMap
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
     "/login",
     async ({ body, set }) => {
-      const record = USERS[body.name]
+      const record = await getModeratorByName(body.name)
 
       if (!record) {
         set.status = 401
         return { error: "invalid credentials" }
       }
 
-      if (record.region !== body.region) {
+      if (record.region_id !== body.region) {
         set.status = 401
         return { error: "region does not match account" }
       }
@@ -25,11 +22,11 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       const token = await signJwt({
         sub: record.id,
         name: body.name,
-        region: record.region,
+        region: record.region_id,
         moderatorId: record.id,
       })
 
-      return { token, name: body.name, region: record.region }
+      return { token, name: body.name, region: record.region_id }
     },
     {
       body: t.Object({
