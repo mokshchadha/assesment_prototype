@@ -6,6 +6,7 @@ const STORAGE_KEY = "mod_auth"
 
 export interface AuthState {
   token: string
+  userId: string
   name: string
   region: Region
 }
@@ -38,7 +39,7 @@ export function useAuth() {
       return { error: data.error ?? "login failed" }
     }
 
-    const state: AuthState = { token: data.token, name: data.name, region: data.region }
+    const state: AuthState = { token: data.token, userId: data.userId, name: data.name, region: data.region }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     setAuth(state)
     return {}

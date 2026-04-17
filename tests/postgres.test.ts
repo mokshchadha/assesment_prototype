@@ -10,6 +10,7 @@ import {
   markEventOpen,
   markEventExpired,
   reopenClaimedEventsByModerator,
+  getClaimedEvents,
   getAllClaimedEvents,
   getClaimedEventsByModerator,
   getResolvedEventsByModerator,
@@ -328,10 +329,32 @@ describe("reopenClaimedEventsByModerator", () => {
   })
 })
 
+describe("getClaimedEvents", () => {
+  afterEach(deleteTestEvents)
+
+  it("returns only events claimed by the specified moderator", async () => {
+    const idAsia   = await seedEvent(ASIA)
+    const idEurope = await seedEvent(EUROPE)
+
+    await markEventClaimed(idAsia, MOD_MOKSH)
+    await markEventClaimed(idEurope, MOD_MARIA)
+
+    const result = await getClaimedEvents(MOD_MOKSH)
+    const ids = result.map((e) => e.id)
+
+    expect(ids).toContain(idAsia)
+    expect(ids).not.toContain(idEurope)
+    result.forEach((e) => {
+      expect(e.status).toBe("claimed")
+      expect(e.claimed_by).toBe(MOD_MOKSH)
+    })
+  })
+})
+
 describe("getAllClaimedEvents", () => {
   afterEach(deleteTestEvents)
 
-  it("includes all currently claimed events regardless of region", async () => {
+  it("includes all currently claimed events regardless of region or moderator", async () => {
     const idAsia   = await seedEvent(ASIA)
     const idEurope = await seedEvent(EUROPE)
 

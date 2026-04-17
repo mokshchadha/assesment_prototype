@@ -6,6 +6,6 @@ export default function App() {
   const { auth, login, logout } = useAuth()
 
   return auth
-    ? <Dashboard name={auth.name} region={auth.region} token={auth.token} onLogout={logout} />
+    ? <Dashboard userId={auth.userId} name={auth.name} region={auth.region} token={auth.token} onLogout={logout} />
     : <Login onLogin={login} />
 }

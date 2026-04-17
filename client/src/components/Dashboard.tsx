@@ -6,13 +6,14 @@ import { EventCard } from "./EventCard"
 type Tab = "open" | "claimed" | "resolved"
 
 interface DashboardProps {
+  userId: string
   name: string
   region: Region
   token: string
   onLogout: () => void
 }
 
-export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
+export function Dashboard({ userId, name, region, token, onLogout }: DashboardProps) {
   const [tab, setTab] = useState<Tab>("open")
   const [events, setEvents] = useState<Record<string, ModerationEvent>>({})
   const [lockTtl, setLockTtl] = useState<number>(0)
@@ -68,8 +69,8 @@ export function Dashboard({ name, region, token, onLogout }: DashboardProps) {
 
   const allEvents = Object.values(events)
   const openEvents = allEvents.filter(e => e.status === "open")
-  const claimedEvents = allEvents.filter(e => e.status === "claimed")
-  const resolvedEvents = allEvents.filter(e => e.status === "resolved")
+  const claimedEvents = allEvents.filter(e => e.status === "claimed" && e.claimed_by === userId)
+  const resolvedEvents = allEvents.filter(e => e.status === "resolved" && e.claimed_by === userId)
 
   const tabList: { id: Tab; label: string; count: number }[] = [
     { id: "open", label: "Open", count: openEvents.length },

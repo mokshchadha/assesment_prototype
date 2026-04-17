@@ -26,7 +26,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         moderatorId: record.id,
       })
 
-      return { token, name: body.name, region: record.region_id }
+      return { token, userId: record.id, name: body.name, region: record.region_id }
     },
     {
       body: t.Object({

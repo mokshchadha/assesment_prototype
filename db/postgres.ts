@@ -169,6 +169,14 @@ export async function reopenClaimedEventsByModerator(moderatorId: string): Promi
   `
 }
 
+export async function getClaimedEvents(moderatorId: string): Promise<DbEvent[]> {
+  return sql<DbEvent[]>`
+    SELECT * FROM events
+    WHERE claimed_by = ${moderatorId}
+    AND status = 'claimed'
+  `
+}
+
 export async function getAllClaimedEvents(): Promise<DbEvent[]> {
   return sql<DbEvent[]>`
     SELECT * FROM events WHERE status = 'claimed'
