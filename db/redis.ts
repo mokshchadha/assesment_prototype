@@ -47,6 +47,7 @@ export async function releaseAllLocksForModerator(eventIds: string[]): Promise<v
 }
 
 export async function enableKeyspaceNotifications(): Promise<void> {
+  // by default these are disabled so we are explicitly enabling these
   await redis.send("CONFIG", ["SET", "notify-keyspace-events", "Ex"])
 }
 
