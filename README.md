@@ -1,76 +1,110 @@
 # Assessment Prototype: Moderation System
 
-A high-performance real-time moderation system prototype built with **Bun**, **Elysia**, **PostgreSQL**, and **Redis**.
+A real-time moderation system prototype designed for high-concurrency event handling across multiple regions, built with **Bun**, **Elysia**, **PostgreSQL**, and **Redis**.
 
-## High-Level Architecture
+## ● Setup Instructions
 
-The system is designed for high-concurrency event moderation across multiple regions:
+### Prerequisites
+- [Bun](https://bun.sh/) (v1.0.0 or higher) - this is used for bun test 
+- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) - for docker compose
 
-- **Bun & Elysia**: Provides a fast JavaScript runtime and a type-safe web framework.
-- **PostgreSQL**: Serving as the source of truth for all persistent data including regions, moderator accounts, and the event lifecycle.
-- **Redis (Locks)**: Implements distributed locking for events. When a moderator claims an event, a Redis lock is acquired with a specific TTL (e.g., 900s) to prevent race conditions and ensure only one moderator handles an event at a time.
-- **Redis (Keyspace Notifications)**: Monitors lock expirations (`Ex`). If a lock expires before an event is resolved, the system automatically reopens the event in the database for other moderators.
+### Steps
+1. **Environment Configuration:**
+   Create a `.env` file in the root directory:
+   ```env
+   LOCK_TTL_SECONDS=900
+   DATABASE_URL="postgres://moduser:modpass@localhost:5433/moderation"
+   JWT_SECRET="your-secret-key"
+   ```
 
----
+3. **Start Infrastructure:**
+   Use Docker Compose to spin up PostgreSQL and Redis:
+   ```bash
+   docker-compose up -d
+   ```
 
-## Route & Event Behavior
-
-The system utilizes a hybrid approach of REST for management and WebSockets for real-time operations.
-
-### REST API Routes
-- **`POST /auth/login`**: Authenticates moderators by `name` and `region`. Returns a JWT used for WebSocket authentication.
-- **`POST /events`**: A system-level endpoint for ingesting new events into the system. Automatically publishes new events to connected WebSocket clients in the relevant region.
-
-### WebSocket Events
-Connection requires authentication via JWT passed as a query parameter. Once connected, clients are subscribed to region-specific topics.
-
-**Client -> Server Messages:**
-- `claim`: Attempts to lock a specific `eventId` for the moderator.
-- `acknowledge`: Resolves the event and releases the associate Redis lock.
-
-**Server -> Client Messages:**
-- `available_events`: Sent on connection; provides the current state of open, claimed, and resolved events for the moderator.
-- `claim_success` / `claim_failed`: Response to a claim attempt.
-- `ack_success` / `ack_failed`: Response to an acknowledgment attempt.
+4. **Run Tests:**
+   ```bash
+   bun test
+   ```
 
 ---
 
-## Database Schema
+## ● Event Ingestions Approach
 
-The PostgreSQL schema is optimized for regional segmentation and event tracking:
+The system uses a **RESTful API** approach for event ingestion, optimized for persistence and real-time distribution:
 
-### `regions`
-- `id`: Primary Key (e.g., `Asia`, `Europe`, `US`).
-
-### `moderators`
-- `id`: Primary Key.
-- `name`: Unique username.
-- `region_id`: Foreign Key referencing `regions`.
-
-### `events`
-- `id`: UUID Primary Key.
-- `region_id`: Foreign Key referencing `regions`.
-- `payload`: JSONB storage for flexible event data.
-- `status`: Enum (`open`, `claimed`, `resolved`, `expired`).
-- `claimed_by`: Foreign Key referencing `moderators`.
-- `claimed_at`, `resolved_at`, `expired_at`: Metadata timestamps.
+- **Source of Truth**: All ingested events are immediately stored in the **PostgreSQL** `events` table with an initial status of `open`. This ensures no data is lost even if the application layer restarts.
+- **Relational Integrity**: Events are linked to specific `regions` (Asia, Europe, US), allowing for strict isolation and regional moderation policies.
+- **Real-Time Dispatch**: As soon as an event is successfully persisted in the DB, the system broadcasts it via **WebSockets** to all moderators currently connected to that specific region's topic.
+- **Payload Flexibility**: Events use a `JSONB` column to store heterogeneous event data (e.g., chat logs, image URIs, user metadata) without requiring schema migrations for new event types.
 
 ---
 
-## Unit Testing
+## ● API Documentation
 
-The project uses Bun's built-in test runner for high-speed verification:
+### REST Endpoints
 
-- **DB Tests**: Located in `tests/postgres.test.ts`, these verify the event lifecycle, regional filtering, and moderator isolation.
-- **Locking Tests**: Located in `tests/redis.test.ts`, these focus on the distributed locking mechanism, TTL behavior, and keyspace notification triggers.
-- **Services Tests**: Located in `tests/services.test.ts`, these verify the business logic of the application.
+#### 1. Moderator Login
+Authenticates a moderator and returns a JWT for WebSocket connection.
+- **Endpoint**: `POST /auth/login`
+- **Body**:
+  ```json
+  { "name": "moderator_name", "region": "Asia" }
+  ```
+- **Example**:
+  ```bash
+  curl -X POST http://localhost:3000/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"name": "Moksh", "region": "Asia"}'
+  ```
 
-### Running Tests
-Ensure your environment variables are configured in `.env`, then run:
-```bash
-# Run all tests
-bun test
+#### 2. Ingest Event
+Ingests a new moderation event into the system.
+- **Endpoint**: `POST /events`
+- **Body**:
+  ```json
+  { "region": "Asia", "payload": { "type": "chat", "message": "hello" } }
+  ```
+- **Example**:
+  ```bash
+  curl -X POST http://localhost:3000/events \
+    -H "Content-Type: application/json" \
+    -d '{"region": "Asia", "payload": {"text": "Inappropriate content detected"}}'
+  ```
 
-# Run a specific test file
-bun test tests/redis.test.ts
-```
+### WebSocket API
+Connect to `ws://localhost:3000/ws?token=<JWT_TOKEN>`.
+
+**Client Messages:**
+- `claim`: `{"type": "claim", "eventId": "uuid"}` - Attempts to lock an event.
+- `acknowledge`: `{"type": "acknowledge", "eventId": "uuid"}` - Resolves the event and releases the lock.
+
+---
+
+## ● Design Decisions, Assumptions, or Tradeoffs
+
+### 1. Hybrid Storage (Postgres + Redis)
+- **Decision**: Use Postgres for persistent state and Redis for transient locks.
+- **Rationale**: Postgres provides strict ACID compliance for the event lifecycle. Redis provides a high-performance, atomic way to handle short-lived "claims" (locks), preventing race conditions where multiple moderators handle the same event.
+
+### 2. Distributed Locking with TTL
+- **Decision**: Redis locks have a configurable TTL (e.g., 15 minutes).
+- **Assumption**: If a moderator doesn't resolve an event within the TTL, it's assumed they are offline or stuck.
+
+### 3. Automated Recovery (Keyspace Notifications)
+- **Decision**: Use Redis `notify-keyspace-events` to listen for lock expirations.
+- **Tradeoff**: This adds a dependency on Redis configuration (`Ex`), but enables the system to automatically revert "claimed" events back to "open" state instantly when a lock expires, ensuring no event remains orphaned.
+
+### 4. Regional Isolation
+- **Decision**: Moderators are strictly bound to a single region.
+- **Tradeoff**: While this limits cross-region help, it simplifies compliance (data residency) and optimizes WebSocket broadcasting by only sending events to relevant staff.
+
+### 5. Startup Rehydration
+- **Decision**: On server start, a `rehydrate` service checks for "claimed" events in Postgres that don't have matching Redis locks and re-opens them.
+- **Rationale**: Ensures system consistency if the server crashes or Redis state is lost.
+
+---
+
+## ● Loom Video
+(Leave this as blank for now)
