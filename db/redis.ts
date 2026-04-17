@@ -30,7 +30,7 @@ export async function getLockOwner(eventId: string): Promise<string | null> {
 
 export async function lockExists(eventId: string): Promise<boolean> {
   const val = await redis.exists(lockKey(eventId))
-  return val === 1
+  return !!val
 }
 
 export async function releaseLockIfOwner(eventId: string, moderatorId: string): Promise<boolean> {
