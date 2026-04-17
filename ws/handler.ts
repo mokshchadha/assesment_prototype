@@ -6,6 +6,7 @@ import { verifyJwt } from "../utils/jwt"
 import users from "../db/users.json"
 import type { ClientMessage, Region } from "../types"
 
+
 type UsersMap = Record<string, { id: string; password: string; region: Region }>
 const USERS = users as UsersMap
 
@@ -15,37 +16,95 @@ export const wsQuerySchema = t.Object({
   token: t.String(),
 })
 
+
+function sendError(ws: any, message: string) {
+  ws.send(JSON.stringify({ type: "error", message }))
+}
+
+function parseMessage(rawMessage: unknown): ClientMessage | null {
+  try {
+    return typeof rawMessage === "string" ? JSON.parse(rawMessage) : (rawMessage as ClientMessage)
+  } catch {
+    return null
+  }
+}
+
+async function validateConnection(
+  ws: any,
+  name: string,
+  region: Region,
+  token: string,
+): Promise<boolean> {
+  const payload = await verifyJwt(token)
+  const isValidToken = payload && payload.name === name && payload.region === region
+  if (!isValidToken) {
+    sendError(ws, "unauthorized")
+    ws.close()
+    return false
+  }
+
+  const user = USERS[name]
+  if (!user) {
+    sendError(ws, "user not found")
+    ws.close()
+    return false
+  }
+
+  return true
+}
+
+async function sendInitialEvents(ws: any, userId: string, region: Region) {
+  const [openEvents, myClaimedEvents, myResolvedEvents] = await Promise.all([
+    getOpenEventsByRegion(region),
+    getClaimedEventsByModerator(userId),
+    getResolvedEventsByModerator(userId),
+  ])
+
+  ws.send(
+    JSON.stringify({
+      type: "available_events",
+      events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents],
+      lockTtlSeconds: LOCK_TTL_SECONDS,
+    }),
+  )
+}
+
+async function handleClaim(ws: any, msg: ClientMessage & { type: "claim" }, userId: string, region: Region) {
+  const result = await claimEvent(msg.eventId, userId, region)
+
+  if (result.success) {
+    const payload = JSON.stringify({ type: "claim_success", event: result.event })
+    ws.send(payload)
+    ws.publish(region, payload)
+  } else {
+    ws.send(JSON.stringify({ type: "claim_failed", eventId: msg.eventId, reason: result.reason }))
+  }
+}
+
+async function handleAcknowledge(ws: any, msg: ClientMessage & { type: "acknowledge" }, userId: string, region: Region) {
+  const result = await acknowledgeEvent(msg.eventId, userId)
+
+  if (result.success) {
+    const payload = JSON.stringify({ type: "ack_success", eventId: msg.eventId })
+    ws.send(payload)
+    ws.publish(region, payload)
+  } else {
+    ws.send(JSON.stringify({ type: "ack_failed", eventId: msg.eventId, reason: result.reason }))
+  }
+}
+
+
 export const wsHandler = {
   query: wsQuerySchema,
 
   async open(ws: any) {
     const { name, region, token } = ws.data.query as { name: string; region: Region; token: string }
 
-    const payload = await verifyJwt(token)
-    if (!payload || payload.name !== name || payload.region !== region) {
-      ws.send(JSON.stringify({ type: "error", message: "unauthorized" }))
-      ws.close()
-      return
-    }
+    const isValid = await validateConnection(ws, name, region, token)
+    if (!isValid) return
 
-    const user = USERS[name]
-    if (!user) {
-      ws.send(JSON.stringify({ type: "error", message: "user not found" }))
-      ws.close()
-      return
-    }
-
-    // subscribe this socket to its region topic
-    // now ws.publish("Asia", ...) reaches every moderator in Asia
     ws.subscribe(region)
-
-    const [openEvents, myClaimedEvents, myResolvedEvents] = await Promise.all([
-      getOpenEventsByRegion(region),
-      getClaimedEventsByModerator(user.id),
-      getResolvedEventsByModerator(user.id),
-    ])
-
-    ws.send(JSON.stringify({ type: "available_events", events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents], lockTtlSeconds: LOCK_TTL_SECONDS }))
+    await sendInitialEvents(ws, USERS[name]?.id ??'', region)
   },
 
   async message(ws: any, rawMessage: unknown) {
@@ -53,47 +112,21 @@ export const wsHandler = {
 
     const user = USERS[name]
     if (!user) {
-      ws.send(JSON.stringify({ type: "error", message: "user not found" }))
+      sendError(ws, "user not found")
       return
     }
 
-    let msg: ClientMessage
-    try {
-      msg = typeof rawMessage === "string" ? JSON.parse(rawMessage) : rawMessage
-    } catch {
-      ws.send(JSON.stringify({ type: "error", message: "invalid json" }))
+    const msg = parseMessage(rawMessage)
+    if (!msg) {
+      sendError(ws, "invalid json")
       return
     }
 
-    if (msg.type === "claim") {
-      const result = await claimEvent(msg.eventId, user.id, region)
-      if (result.success) {
-        ws.send(JSON.stringify({ type: "claim_success", event: result.event }))
-        // publish to region — every other subscriber in this region gets it
-        ws.publish(region, JSON.stringify({ type: "claim_success", event: result.event }))
-      } else {
-        ws.send(JSON.stringify({ type: "claim_failed", eventId: msg.eventId, reason: result.reason }))
-      }
-      return
-    }
+    if (msg.type === "claim") return handleClaim(ws, msg as any, user.id, region)
+    if (msg.type === "acknowledge") return handleAcknowledge(ws, msg as any, user.id, region)
 
-    if (msg.type === "acknowledge") {
-      const result = await acknowledgeEvent(msg.eventId, user.id)
-      if (result.success) {
-        ws.send(JSON.stringify({ type: "ack_success", eventId: msg.eventId }))
-        ws.publish(region, JSON.stringify({ type: "ack_success", eventId: msg.eventId }))
-      } else {
-        ws.send(JSON.stringify({ type: "ack_failed", eventId: msg.eventId, reason: result.reason }))
-      }
-      return
-    }
-
-    ws.send(JSON.stringify({ type: "error", message: "unknown message type" }))
+    sendError(ws, "unknown message type")
   },
 
-  async close(ws: any) {
-    const { region } = ws.data.query as { name: string; region: Region; token: string }
-    // bun automatically unsubscribes the socket on close
-    // no session cleanup needed — redis owns claim state
-  },
+  async close(_ws: any) {},
 }
