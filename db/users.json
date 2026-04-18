@@ -1,18 +1,18 @@
 {
-  "moksh": {
-    "id": "moksh",
-    "region": "Asia"
-  },
-  "maria": {
-    "id": "maria",
-    "region": "Europe"
-  },
-  "john": {
-    "id": "john",
-    "region": "US"
-  },
-  "alex": {
-    "id": "alex",
-    "region": "Asia"
-  }
+	"moksh": {
+		"id": "moksh",
+		"region": "Asia"
+	},
+	"maria": {
+		"id": "maria",
+		"region": "Europe"
+	},
+	"john": {
+		"id": "john",
+		"region": "US"
+	},
+	"alex": {
+		"id": "alex",
+		"region": "Asia"
+	}
 }
