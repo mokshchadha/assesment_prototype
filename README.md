@@ -29,11 +29,11 @@ A real-time moderation system prototype designed for high-concurrency event hand
 
 4. **Run Tests:** 
 
-unit testing
+unit testing - as of now 59 tests working correctly
    ```bash
    bun test
    ```
-load testing
+load testing - as of now can handle 2911 req/sec + 1500 virtual users and 13million websocket message per min
    ```
     k6 run tests/load_tests/k6-test.js 
    ```
