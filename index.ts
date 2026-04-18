@@ -9,6 +9,7 @@ import { enableKeyspaceNotifications } from "./db/redis"
 import { startLockExpiryListener } from "./services/lockExpiry"
 import { authMiddleware } from "./middleware/auth"
 import { setServer } from "./ws/server"
+import { handleError } from "./utils/error"
 
 export const app = new Elysia()
   .use(cors())
@@ -17,19 +18,7 @@ export const app = new Elysia()
   .use(eventRoutes)
   .ws("/ws", wsHandler)
   .get("/health", () => ({ status: "ok" }))
-  .onError(({ error, set, code }) => {
-    if (code === "VALIDATION") {
-      set.status = 400
-      return { error: error.message }
-    }
-    if ((error as any).message === "missing token" || (error as any).message === "invalid or expired token") {
-      set.status = 401
-      return { error: (error as any).message }
-    }
-    console.error(error)
-    set.status = 500
-    return { error: "internal server error" }
-  })
+  .onError(handleError)
   .onStart(async ({ server }) => {
     setServer(server!)
     await runMigrations()
