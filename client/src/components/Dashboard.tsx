@@ -1,7 +1,9 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { ModerationEvent, Region } from "../types"
 import { useWs } from "../hooks/useWs"
 import { EventCard } from "./EventCard"
+
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
 
 type Tab = "open" | "claimed" | "resolved"
 
@@ -66,6 +68,28 @@ export function Dashboard({ userId, name, region, token, onLogout }: DashboardPr
   }
 
   const { connected, claim, acknowledge } = useWs(wsOpts)
+
+  useEffect(() => {
+    let active = true
+    fetch(`${API}/events`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!active) return
+        if (data.events) {
+          setLockTtl(data.lockTtlSeconds)
+          setEvents(prev => {
+            const next = { ...prev }
+            for (const e of data.events) next[e.id] = e
+            return next
+          })
+        }
+      })
+      .catch(err => console.error("Initial load failed", err))
+
+    return () => { active = false }
+  }, [token])
 
   const allEvents = Object.values(events)
   const openEvents = allEvents.filter(e => e.status === "open")

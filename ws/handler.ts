@@ -48,22 +48,6 @@ async function validateConnection(
   return true
 }
 
-async function sendInitialEvents(ws: any, userId: string, region: Region) {
-  const [openEvents, myClaimedEvents, myResolvedEvents] = await Promise.all([
-    getOpenEventsByRegion(region),
-    getClaimedEventsByModerator(userId),
-    getResolvedEventsByModerator(userId),
-  ])
-
-  ws.send(
-    JSON.stringify({
-      type: "available_events",
-      events: [...openEvents, ...myClaimedEvents, ...myResolvedEvents],
-      lockTtlSeconds: LOCK_TTL_SECONDS,
-    }),
-  )
-}
-
 async function handleClaim(ws: any, msg: ClientMessage & { type: "claim" }, userId: string, region: Region) {
   const result = await claimEvent(msg.eventId, userId, region)
 
@@ -106,7 +90,6 @@ export const wsHandler = {
     }
 
     ws.subscribe(region)
-    await sendInitialEvents(ws, moderator.id, region)
   },
 
   async message(ws: any, rawMessage: unknown) {
