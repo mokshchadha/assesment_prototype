@@ -2,30 +2,12 @@ import { useEffect, useRef, useCallback, useState } from "react"
 import type { ModerationEvent, ServerMessage } from "../types"
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:3000"
-const LOCK_TTL_STORAGE_KEY = "mod_lock_ttl"
-
-function getStoredTtl(): number {
-  try {
-    const raw = localStorage.getItem(LOCK_TTL_STORAGE_KEY)
-    if (raw) {
-      const val = parseInt(raw, 10)
-      if (!isNaN(val) && val > 0) return val
-    }
-  } catch {}
-  return 30
-}
-
-function storeTtl(ttl: number): void {
-  try {
-    localStorage.setItem(LOCK_TTL_STORAGE_KEY, String(ttl))
-  } catch {}
-}
 
 interface UseWsOptions {
   name: string
   region: string
   token: string
-  onAvailableEvents: (events: ModerationEvent[], lockTtlSeconds: number) => void
+  onAvailableEvents: (events: ModerationEvent[]) => void
   onClaimSuccess: (event: ModerationEvent) => void
   onClaimFailed: (eventId: string, reason: string) => void
   onClaimExpired: (eventId: string) => void
@@ -69,12 +51,9 @@ export function useWs(opts: UseWsOptions | null) {
         }
 
         switch (msg.type) {
-          case "available_events": {
-            const ttl = msg.lockTtlSeconds > 0 ? msg.lockTtlSeconds : getStoredTtl()
-            if (msg.lockTtlSeconds > 0) storeTtl(msg.lockTtlSeconds)
-            opts.onAvailableEvents(msg.events, ttl)
+          case "available_events":
+            opts.onAvailableEvents(msg.events)
             break
-          }
           case "claim_success":    opts.onClaimSuccess(msg.event); break
           case "claim_failed":     opts.onClaimFailed(msg.eventId, msg.reason); break
           case "claim_expired":    opts.onClaimExpired(msg.eventId); break

@@ -3,6 +3,7 @@ import type { Region } from "../types"
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
 const STORAGE_KEY = "mod_auth"
+const LOCK_TTL_STORAGE_KEY = "mod_lock_ttl"
 
 export interface AuthState {
   token: string
@@ -39,6 +40,10 @@ export function useAuth() {
       return { error: data.error ?? "login failed" }
     }
 
+    if (data.lockTtlSeconds) {
+      localStorage.setItem(LOCK_TTL_STORAGE_KEY, String(data.lockTtlSeconds))
+    }
+
     const state: AuthState = { token: data.token, userId: data.userId, name: data.name, region: data.region }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     setAuth(state)
@@ -51,6 +56,7 @@ export function useAuth() {
       headers: { Authorization: `Bearer ${auth?.token}` },
     }).catch(() => {})
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LOCK_TTL_STORAGE_KEY)
     setAuth(null)
   }
 

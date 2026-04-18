@@ -4,6 +4,18 @@ import { useWs } from "../hooks/useWs"
 import { EventCard } from "./EventCard"
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
+const LOCK_TTL_STORAGE_KEY = "mod_lock_ttl"
+
+function getStoredTtl(): number {
+  try {
+    const raw = localStorage.getItem(LOCK_TTL_STORAGE_KEY)
+    if (raw) {
+      const val = parseInt(raw, 10)
+      if (!isNaN(val) && val > 0) return val
+    }
+  } catch {}
+  return 900
+}
 
 type Tab = "open" | "claimed" | "resolved"
 
@@ -18,7 +30,7 @@ interface DashboardProps {
 export function Dashboard({ userId, name, region, token, onLogout }: DashboardProps) {
   const [tab, setTab] = useState<Tab>("open")
   const [events, setEvents] = useState<Record<string, ModerationEvent>>({})
-  const [lockTtl, setLockTtl] = useState<number>(0)
+  const lockTtl = getStoredTtl()
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -36,8 +48,7 @@ export function Dashboard({ userId, name, region, token, onLogout }: DashboardPr
     name,
     region,
     token,
-    onAvailableEvents: (incoming: ModerationEvent[], lockTtlSeconds: number) => {
-      setLockTtl(lockTtlSeconds)
+    onAvailableEvents: (incoming: ModerationEvent[]) => {
       setEvents(prev => {
         const next = { ...prev }
         for (const e of incoming) next[e.id] = e
@@ -77,7 +88,6 @@ export function Dashboard({ userId, name, region, token, onLogout }: DashboardPr
       .then(data => {
         if (!active) return
         if (data.events) {
-          setLockTtl(data.lockTtlSeconds)
           setEvents(prev => {
             const next = { ...prev }
             for (const e of data.events) next[e.id] = e
