@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import type { ModerationEvent } from "../types"
+import { ClaimTimer } from "./ClaimedTimer"
 
 interface EventCardProps {
   event: ModerationEvent
@@ -48,7 +49,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
   if (typeof event.payload === 'string') {
     try {
       payloadObj = JSON.parse(event.payload);
-    } catch (e) {
+    } catch {
       // ignore JSON parse errors
     }
   } else if (typeof event.payload === 'object' && event.payload !== null) {
@@ -92,19 +93,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
       </div>
 
       {event.claimed_at && (
-        <div className="event-claimed-container">
-          <div className="event-claimed-at">
-            claimed {timeAgo(event.claimed_at)}
-          </div>
-          {event.status === "claimed" && typeof lockTtlSeconds === "number" && lockTtlSeconds > 0 && (
-            <div className="progress-bar-bg">
-              <div 
-                className="progress-bar-fill" 
-                style={{ width: `${progress}%` }} 
-              />
-            </div>
-          )}
-        </div>
+        <ClaimTimer claimedAt={event.claimed_at} ttlSeconds={lockTtlSeconds ?? 15} />
       )}
 
       <div className="event-actions">
