@@ -1,6 +1,5 @@
 import { t } from "elysia"
-import { getOpenEventsByRegion, getClaimedEventsByModerator, getResolvedEventsByModerator, getModeratorByName } from "../db/postgres"
-import { LOCK_TTL_SECONDS } from "../db/redis"
+import { getModeratorByName } from "../db/postgres"
 import { claimEvent, acknowledgeEvent } from "../services/claim"
 import { verifyJwt } from "../utils/jwt"
 import type { ClientMessage, Region } from "../types"
