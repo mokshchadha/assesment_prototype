@@ -23,34 +23,51 @@ export function useWs(opts: UseWsOptions | null) {
   useEffect(() => {
     if (!opts) return
 
-    const url = `${WS_URL}/ws?name=${opts.name}&region=${opts.region}&token=${opts.token}`
-    const socket = new WebSocket(url)
-    ws.current = socket
+    let isMounted = true
+    let reconnectTimeout: ReturnType<typeof setTimeout>
 
-    socket.onopen = () => setConnected(true)
-    socket.onclose = () => setConnected(false)
+    const connect = () => {
+      const url = `${WS_URL}/ws?name=${opts.name}&region=${opts.region}&token=${opts.token}`
+      const socket = new WebSocket(url)
+      ws.current = socket
 
-    socket.onmessage = (e) => {
-      let msg: ServerMessage
-      try {
-        msg = JSON.parse(e.data)
-      } catch {
-        return
+      socket.onopen = () => {
+        if (!isMounted) return
+        setConnected(true)
       }
 
-      switch (msg.type) {
-        case "available_events": opts.onAvailableEvents(msg.events, msg.lockTtlSeconds); break
-        case "claim_success":    opts.onClaimSuccess(msg.event); break
-        case "claim_failed":     opts.onClaimFailed(msg.eventId, msg.reason); break
-        case "claim_expired":    opts.onClaimExpired(msg.eventId); break
-        case "ack_success":      opts.onAckSuccess(msg.eventId); break
-        case "ack_failed":       opts.onAckFailed(msg.eventId, msg.reason); break
-        case "error":            opts.onError(msg.message); break
+      socket.onclose = () => {
+        if (!isMounted) return
+        setConnected(false)
+        reconnectTimeout = setTimeout(connect, 3000)
+      }
+
+      socket.onmessage = (e) => {
+        let msg: ServerMessage
+        try {
+          msg = JSON.parse(e.data)
+        } catch {
+          return
+        }
+
+        switch (msg.type) {
+          case "available_events": opts.onAvailableEvents(msg.events, msg.lockTtlSeconds); break
+          case "claim_success":    opts.onClaimSuccess(msg.event); break
+          case "claim_failed":     opts.onClaimFailed(msg.eventId, msg.reason); break
+          case "claim_expired":    opts.onClaimExpired(msg.eventId); break
+          case "ack_success":      opts.onAckSuccess(msg.eventId); break
+          case "ack_failed":       opts.onAckFailed(msg.eventId, msg.reason); break
+          case "error":            opts.onError(msg.message); break
+        }
       }
     }
 
+    connect()
+
     return () => {
-      socket.close()
+      isMounted = false
+      clearTimeout(reconnectTimeout)
+      ws.current?.close()
       ws.current = null
     }
   }, [opts?.name, opts?.region, opts?.token])
