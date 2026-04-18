@@ -54,7 +54,20 @@ Authenticates a moderator and returns a JWT for WebSocket connection.
     -d '{"name": "Moksh", "region": "Asia"}'
   ```
 
-#### 2. Ingest Event
+#### 2. Fetch Dashboard Events
+Fetches the initial events for the moderator's dashboard, including open events for their region and their claimed/resolved events.
+- **Endpoint**: `GET /events`
+- **Headers**:
+  ```
+  Authorization: Bearer <JWT_TOKEN>
+  ```
+- **Example**:
+  ```bash
+  curl -X GET http://localhost:3000/events \
+    -H "Authorization: Bearer <your-jwt-token>"
+  ```
+
+#### 3. Ingest Event
 Ingests a new moderation event into the system.
 - **Endpoint**: `POST /events`
 - **Body**:

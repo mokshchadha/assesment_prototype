@@ -34,7 +34,7 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
-    command: bun run dev
+    command: bun run prod
     ports:
       - "3000:3000"
     environment:
