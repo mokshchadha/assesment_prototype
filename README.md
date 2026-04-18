@@ -102,8 +102,8 @@ Connect to `ws://localhost:3000/ws?token=<JWT_TOKEN>`.
 
 ## ● Design Decisions, Assumptions, or Tradeoffs
 
-At an highlevel the design looks something like the diagram below.
- 
+From highlevel the design looks something like the diagram below.
+<img src = "https://i.ibb.co/qLKhMxT8/Screenshot-2026-04-18-at-5-33-11-PM.png" alt="high_level_design">
 
 
 **Assumptions**
@@ -124,7 +124,7 @@ Above stats are provided on the basis of load testing done inside docker on a Ma
 4. For now the events of all status are kept in 1 table acknowledged events can be moved to a seperate table, if acknowledged table need not be refreshed real time we can use background job like bun.cron to clean up.
 
 ** DB SCHEMA ** 
-
+<img src="https://i.ibb.co/Lh8jcRTs/Screenshot-2026-04-18-at-3-34-06-PM.png" alt="dbschema">
  
 
 ---
