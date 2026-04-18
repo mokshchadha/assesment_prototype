@@ -61,7 +61,6 @@ export function Dashboard({ userId, name, region, token, onLogout }: DashboardPr
         if (!prev[eventId]) return prev
         return { ...prev, [eventId]: { ...prev[eventId], status: "resolved", resolved_at: new Date().toISOString() } }
       })
-      showToast("Event resolved")
     },
     onAckFailed: (_: string, reason: string) => showToast(`Ack failed: ${reason}`),
     onError: (message: string) => showToast(`Error: ${message}`),

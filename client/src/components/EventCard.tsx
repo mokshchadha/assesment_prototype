@@ -92,7 +92,7 @@ export function EventCard({ event, onClaim, onAck, lockTtlSeconds }: EventCardPr
         </div>
       </div>
 
-      {event.claimed_at && (
+      {event.claimed_at && event.status === "claimed" && (
         <ClaimTimer claimedAt={event.claimed_at} ttlSeconds={lockTtlSeconds ?? 15} />
       )}
 

@@ -24,6 +24,8 @@ A real-time moderation system prototype designed for high-concurrency event hand
    docker-compose up
    ```
    note sometimes u might see "Container assesment_prototype-backend-1 Error dependency backend failed to start" - ignore it
+   
+   IMPORTANT - there is a seed script which simulates real time ingestion of events turn that that service on in your docker (it is paused by default) - refer to loom for more.
 
 4. **Run Tests:** 
 
