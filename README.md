@@ -33,7 +33,7 @@ unit testing
    ```
 load testing
    ```
-    k6 run tests/load_test/k6-test.js 
+    k6 run tests/load_tests/k6-test.js 
    ```
 
 ---
