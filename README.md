@@ -41,7 +41,9 @@ load testing
 ## ● Event Ingestions Approach
 
 
-we use /events route to ingest all the events that come in and they are directly stored in Postgres. we publish event to UI so that moderators can see latest events with out refreshing the page.
+I have created a seed-events.ts (this is a part of docker compose) - this send events to the server for ingestion at a rate of 0-10 events/sec randomly.
+
+and the /events route to ingest all the events that come in and they are directly stored in Postgres. we publish event to UI so that moderators can see latest events with out refreshing the page.
 Db diagram - https://dbdiagram.io/d/Sprinto-69c54752fb2db18e3b11b1e2
 
 
