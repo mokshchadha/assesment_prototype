@@ -103,7 +103,7 @@ Connect to `ws://localhost:3000/ws?token=<JWT_TOKEN>`.
 ## ● Design Decisions, Assumptions, or Tradeoffs
 
 From highlevel the design looks something like the diagram below.
-<img src = "https://i.ibb.co/qLKhMxT8/Screenshot-2026-04-18-at-5-33-11-PM.png" alt="high_level_design">
+<img src = "https://i.ibb.co/jZTn04z3/Screenshot-2026-04-18-at-6-12-01-PM.png" alt="high_level_design">
 
 
 **Assumptions**
